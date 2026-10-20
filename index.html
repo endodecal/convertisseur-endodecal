@@ -32,7 +32,7 @@ footer{font-size:.85rem;color:#667788;margin:22px 0}
   <div class="card">
     <h2>Retrouver une date depuis le calendrier endodécal</h2>
     <div class="grid">
-      <div><label for="year">Année endodécale</label><input id="year" type="number" min="-9999" max="9999" value="1"></div>
+      <div><label for="year">Année endodécale</label><input id="year" type="text" inputmode="text" pattern="-?[0-9]*" value="1" autocomplete="off"></div>
       <div><label for="oude">Oude / yogon</label><select id="oude">
         <option>Yule</option><option>Gème</option><option>Imbolc</option><option>Lore</option><option>Ostara</option><option>Vère</option><option>Beltaine</option><option>Sole</option><option>Litha</option><option>Same</option><option>Lugnasad</option><option>Cèle</option><option>Mabon</option><option>Adune</option><option>Samain</option><option>Tone</option>
       </select></div>
@@ -146,8 +146,9 @@ function dateFor(y,idx,day){
 const daySelect=document.getElementById("day");
 function fillDays(preserve=true){
   const previous=preserve ? daySelect.value : "1";
-  let y=Number(document.getElementById("year").value);
-  if(!Number.isInteger(y)||y===0) y=1;
+  const yearRaw=document.getElementById("year").value.trim();
+  let y=Number(yearRaw);
+  if(yearRaw===""||!Number.isInteger(y)||y===0) y=1;
   const idx=names.indexOf(document.getElementById("oude").value);
   const retroMax=retroLength(idx,y), directMax=directLength(idx,y);
   daySelect.innerHTML="";
@@ -157,22 +158,55 @@ function fillDays(preserve=true){
   else daySelect.value="1";
 }
 fillDays(false);
-document.getElementById("year").addEventListener("change",()=>fillDays(true));
+document.getElementById("year").addEventListener("input",()=>{
+  const yearInput=document.getElementById("year");
+  if(yearInput.value.trim()==="0") yearInput.value="";
+});
+document.getElementById("year").addEventListener("change",()=>{
+  const yearInput=document.getElementById("year");
+  if(yearInput.value.trim()==="0") yearInput.value="";
+  fillDays(true);
+});
+document.getElementById("year").addEventListener("blur",()=>{
+  const yearInput=document.getElementById("year");
+  if(yearInput.value.trim()==="0") yearInput.value="";
+});
+document.getElementById("year").addEventListener("keydown",(event)=>{
+  const yearInput=event.currentTarget;
+  const current=Number(yearInput.value);
+  if(event.key==="ArrowUp" || event.key==="ArrowDown"){
+    if(!Number.isInteger(current) || yearInput.value.trim()==="") return;
+    event.preventDefault();
+    const delta=event.key==="ArrowUp" ? 1 : -1;
+    let next=current+delta;
+    if(current===-1 && delta===1) next=1;
+    else if(current===1 && delta===-1) next=-1;
+    yearInput.value=String(next);
+    fillDays(true);
+  }
+});
 document.getElementById("oude").addEventListener("change",()=>fillDays(true));
 document.getElementById("convert").addEventListener("click",()=>{
  const d=utcDate(document.getElementById("greg").value); const r=convertDate(d);
  document.getElementById("dateResult").innerHTML=`<div class="big">${r.text}</div>${r.code?`<p>Notation : <strong>${r.code}</strong></p>`:""}<p class="muted">${fmt(d)}</p>`;
 });
 document.getElementById("reverse").addEventListener("click",()=>{
- const y=Number(document.getElementById("year").value), idx=names.indexOf(document.getElementById("oude").value), day=daySelect.value;
- if(!Number.isInteger(y)||y===0){document.getElementById("reverseResult").textContent="Saisis une année endodécale valide (négative ou positive, sans année 0).";return}
+ const yearInput=document.getElementById("year");
+ const rawYear=yearInput.value.trim();
+ const y=Number(rawYear), idx=names.indexOf(document.getElementById("oude").value), day=daySelect.value;
+ if(rawYear===""||!Number.isInteger(y)||y===0){document.getElementById("reverseResult").textContent="Saisis une année endodécale valide (négative ou positive, sans année 0).";return}
  let d, displayYear=y, displayIdx=idx, displayDay=day, corrected=false;
- const retroMax=retroLength(idx,y);
+ // Les jours avant Yule sont étiquetés avec l’année qui se termine.
+ // Leur date se calcule à partir du Yule de l’année suivante, en sautant l’année 0.
+ const calculationYear = (day.startsWith("-") && idx===0)
+   ? (y===-1 ? 1 : y+1)
+   : y;
+ const retroMax=retroLength(idx,calculationYear);
  if(day.startsWith("-") && Math.abs(Number(day))>retroMax){
    // Recode un jour rétrograde impossible sur l'endex direct de l'oude précédente.
    displayIdx=(idx+15)%16;
    displayDay=String(directLength(displayIdx,y));
-   d=dateFor(y,displayIdx,displayDay);
+   d=dateFor(calculationYear,displayIdx,displayDay);
    corrected=true;
  } else if(!day.startsWith("-") && Number(day)>directLength(idx,y)){
    // Recode un jour direct impossible sur l'endex rétrograde de l'oude suivante.
@@ -182,7 +216,7 @@ document.getElementById("reverse").addEventListener("click",()=>{
    if(displayIdx===0) displayYear=(y===-1 ? 1 : y+1);
    corrected=true;
  } else {
-   d=dateFor(y,idx,day);
+   d=dateFor(calculationYear,idx,day);
  }
  if(corrected){
    document.getElementById("year").value=displayYear;
