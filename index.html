@@ -25,14 +25,14 @@ footer{font-size:.85rem;color:#667788;margin:22px 0}
   <div class="card">
     <h2>Convertir une date grégorienne</h2>
     <label for="greg">Date à convertir</label>
-    <input id="greg" type="date" value="2027-12-22">
+    <input id="greg" type="date">
     <button id="convert">Convertir</button>
     <div class="result" id="dateResult" aria-live="polite">Choisis une date puis clique sur « Convertir ».</div>
   </div>
   <div class="card">
     <h2>Retrouver une date depuis le calendrier endodécal</h2>
     <div class="grid">
-      <div><label for="year">Année endodécale</label><input id="year" type="number" min="1" max="9999" value="1"></div>
+      <div><label for="year">Année endodécale</label><input id="year" type="number" min="-9999" max="9999" value="1"></div>
       <div><label for="oude">Oude / yogon</label><select id="oude">
         <option>Yule</option><option>Gème</option><option>Imbolc</option><option>Lore</option><option>Ostara</option><option>Vère</option><option>Beltaine</option><option>Sole</option><option>Litha</option><option>Same</option><option>Lugnasad</option><option>Cèle</option><option>Mabon</option><option>Adune</option><option>Samain</option><option>Tone</option>
       </select></div>
@@ -50,9 +50,18 @@ const names=["Yule","Gème","Imbolc","Lore","Ostara","Vère","Beltaine","Sole","
 const retroBase=[12,11,11,11,12,11,11,11,12,11,11,11,12,11,11,11];
 const directBase=[11,11,11,11,12,12,12,12,12,12,12,12,12,11,11,11];
 function hasEpagomenalDay(year){
-  // Règle grégorienne appliquée au numéro de l’année endodécale :
-  // divisible par 4, sauf les siècles non divisibles par 400.
-  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  // La numérotation endodécale n’a pas d’année 0.
+  // Années positives : règle grégorienne habituelle.
+  if(year > 0) return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  // Années négatives : les années candidates sont -1, -5, -9…
+  // On compte les quadriennats à rebours depuis -1 : -97 est le 25e
+  // (sans épagomène), tandis que -397 est le 100e (avec épagomène).
+  if(year < 0){
+    const quadriennat = (3 - year) / 4;
+    return Number.isInteger(quadriennat) &&
+      (quadriennat % 25 !== 0 || quadriennat % 100 === 0);
+  }
+  return false; // l’année 0 n’existe pas.
 }
 function retroLength(index, year){
   // Le jour épagomène est inséré dans le Dodémère rétrograde avant Same.
@@ -68,9 +77,14 @@ function utcDate(s){const [y,m,d]=s.split("-").map(Number);return new Date(Date.
 function iso(d){return d.toISOString().slice(0,10)}
 function add(d,n){return new Date(d.getTime()+n*MS)}
 function fmt(d){return new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long",year:"numeric",timeZone:"UTC"}).format(d)}
-function yearStart(y){ // Yule of endodécal year y; four-year cycle, year 4 includes epagomenon
+function yearStart(y){ // Yule de l’année y, sans année 0.
   let d=utcDate("2027-12-22");
-  for(let k=1;k<y;k++) d=add(d, hasEpagomenalDay(k)?366:365);
+  if(y > 1){
+    for(let k=1;k<y;k++) d=add(d, hasEpagomenalDay(k)?366:365);
+  } else if(y < 1){
+    // L’année -1 précède directement l’année 1.
+    for(let k=-1;k>=y;k--) d=add(d, hasEpagomenalDay(k)?-366:-365);
+  }
   return d;
 }
 function buildYear(y){
@@ -91,8 +105,9 @@ function buildYear(y){
 function allOudesAround(date){
   const found=[];
   const origin=utcDate("2027-12-22");
-  const y0=Math.max(1,Math.floor((date-origin)/MS/365.2425)+1);
-  for(let y=Math.max(1,y0-2);y<=y0+2;y++){
+  const y0=Math.floor((date-origin)/MS/365.2425)+1;
+  for(let y=y0-2;y<=y0+2;y++){
+    if(y===0) continue; // aucune année 0 dans le calendrier
     const b=buildYear(y);
     b.dates.forEach((d,i)=>{if(i<16)found.push({date:d,year:y,index:i,name:names[i]})});
   }
@@ -104,14 +119,14 @@ function convertDate(date){
   const oudes=allOudesAround(date);
   let prev=null,next=null;
   for(const o of oudes){if(o.date<=date)prev=o;if(o.date>date){next=o;break}}
-  if(!prev && next) return {text:"Date antérieure à l’origine retenue.",date};
+  if(!prev && next) return {text:"Date antérieure à la plage calculée.",date};
   const sincePrev=Math.round((date-prev.date)/MS);
   if(sincePrev===0) return {text:`Année ${prev.year} · protémère après ${prev.name}`,code:`${prev.year}/1/${prev.index+1}`,date};
   if(next){
     const untilNext=Math.round((next.date-date)/MS);
     const maxRetro=retroLength(next.index,next.year);
     if(untilNext>=1 && untilNext<=maxRetro){
-      const labelYear=next.index===0 ? next.year-1 : next.year;
+      const labelYear=next.index===0 ? (next.year===1 ? -1 : next.year-1) : next.year;
       return {text:`Année ${labelYear} · ${ordinal(untilNext)} avant ${next.name}`,code:`${labelYear}/-${untilNext}/${next.index+1}`,date};
     }
   }
@@ -131,7 +146,8 @@ function dateFor(y,idx,day){
 const daySelect=document.getElementById("day");
 function fillDays(preserve=true){
   const previous=preserve ? daySelect.value : "1";
-  const y=Math.max(1,Number(document.getElementById("year").value)||1);
+  let y=Number(document.getElementById("year").value);
+  if(!Number.isInteger(y)||y===0) y=1;
   const idx=names.indexOf(document.getElementById("oude").value);
   const retroMax=retroLength(idx,y), directMax=directLength(idx,y);
   daySelect.innerHTML="";
@@ -149,7 +165,7 @@ document.getElementById("convert").addEventListener("click",()=>{
 });
 document.getElementById("reverse").addEventListener("click",()=>{
  const y=Number(document.getElementById("year").value), idx=names.indexOf(document.getElementById("oude").value), day=daySelect.value;
- if(!Number.isInteger(y)||y<1){document.getElementById("reverseResult").textContent="Saisis une année endodécale valide.";return}
+ if(!Number.isInteger(y)||y===0){document.getElementById("reverseResult").textContent="Saisis une année endodécale valide (négative ou positive, sans année 0).";return}
  let d, displayYear=y, displayIdx=idx, displayDay=day, corrected=false;
  const retroMax=retroLength(idx,y);
  if(day.startsWith("-") && Math.abs(Number(day))>retroMax){
@@ -163,7 +179,7 @@ document.getElementById("reverse").addEventListener("click",()=>{
    displayIdx=(idx+1)%16;
    displayDay=String(-retroLength(displayIdx,y));
    d=dateFor(y,displayIdx,displayDay);
-   if(displayIdx===0) displayYear=y+1;
+   if(displayIdx===0) displayYear=(y===-1 ? 1 : y+1);
    corrected=true;
  } else {
    d=dateFor(y,idx,day);
@@ -177,6 +193,18 @@ document.getElementById("reverse").addEventListener("click",()=>{
  const label=displayDay.startsWith("-")?ordinal(Math.abs(Number(displayDay)))+" avant":ordinal(Number(displayDay))+" après";
  document.getElementById("reverseResult").innerHTML=`<div class="big">${fmt(d)}</div><p>Repère choisi : année ${displayYear}, ${label} ${names[displayIdx]}.</p>${corrected?`<p class="muted">Le jour demandé n’existe pas pour cet endex. Les champs ont été ajustés au repère valide correspondant.</p>`:""}`;
 });
+const today = new Date();
+const todayIso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+document.getElementById("greg").value = todayIso;
+// Au chargement, préremplit aussi le second convertisseur avec la date endodécale du jour.
+const todayEndodecal = convertDate(utcDate(todayIso));
+if (todayEndodecal.code) {
+  const [todayYear, todayDay, todayIndex] = todayEndodecal.code.split("/").map(Number);
+  document.getElementById("year").value = todayYear;
+  document.getElementById("oude").value = names[todayIndex - 1];
+  fillDays(false);
+  daySelect.value = String(todayDay);
+}
 document.getElementById("convert").click();
 </script>
 </body>
