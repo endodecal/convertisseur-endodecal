@@ -21,11 +21,11 @@ footer{font-size:.85rem;color:#667788;margin:22px 0}
 <body>
 <main>
   <h1>Calculateur du Calendrier Endodécal</h1>
-  <p>Convertisseur de dates à partir de l’origine retenue : <strong>Yule, 21 décembre 2024 — année 1</strong>.</p>
+  <p>Convertisseur de dates à partir de l’origine retenue : <strong>Yule, 22 décembre 2023 — année 1 (type c)</strong>.</p>
   <div class="card">
     <h2>Convertir une date grégorienne</h2>
     <label for="greg">Date à convertir</label>
-    <input id="greg" type="date" value="2024-12-21">
+    <input id="greg" type="date" value="2023-12-22">
     <button id="convert">Convertir</button>
     <div class="result" id="dateResult" aria-live="polite">Choisis une date puis clique sur « Convertir ».</div>
   </div>
@@ -69,7 +69,7 @@ function iso(d){return d.toISOString().slice(0,10)}
 function add(d,n){return new Date(d.getTime()+n*MS)}
 function fmt(d){return new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long",year:"numeric",timeZone:"UTC"}).format(d)}
 function yearStart(y){ // Yule of endodécal year y; four-year cycle, year 4 includes epagomenon
-  let d=utcDate("2024-12-21");
+  let d=utcDate("2023-12-22");
   for(let k=1;k<y;k++) d=add(d, hasEpagomenalDay(k)?366:365);
   return d;
 }
@@ -90,7 +90,7 @@ function buildYear(y){
 }
 function allOudesAround(date){
   const found=[];
-  const origin=utcDate("2024-12-21");
+  const origin=utcDate("2023-12-22");
   const y0=Math.max(1,Math.floor((date-origin)/MS/365.2425)+1);
   for(let y=Math.max(1,y0-2);y<=y0+2;y++){
     const b=buildYear(y);
