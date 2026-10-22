@@ -16,10 +16,38 @@ button{background:var(--blue);color:white;border:0;font-weight:650;cursor:pointe
 table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{font-size:.9rem;color:#42566a}
 .notice{border-left:4px solid #c38b30;padding:10px 13px;background:#fff8e9;border-radius:4px;font-size:.92rem}
 footer{font-size:.85rem;color:#667788;margin:22px 0}
+
+/* Compte à rebours vers Yule 2027 */
+.countdown-card{background:linear-gradient(145deg,#fff 0%,#edf3f8 100%);border:1px solid #cbd9e6;border-radius:16px;padding:22px;margin:16px 0 24px;text-align:center;box-shadow:0 4px 18px #18324a0b}
+.countdown-eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:#55718d;font-weight:700;margin:0 0 8px}
+.countdown-title{font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.45rem,4vw,2rem);line-height:1.2;color:var(--blue);margin:0 0 8px}
+.countdown-date{font-size:1.05rem;font-weight:650;color:#42566a;margin:0 0 18px}
+.countdown-units{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:560px;margin:0 auto}
+.countdown-unit{background:rgba(255,255,255,.82);border:1px solid #d7e0e8;border-radius:10px;padding:12px 5px}
+.countdown-number{display:block;font-size:clamp(1.5rem,5vw,2.25rem);font-weight:750;line-height:1.15;color:var(--blue);font-variant-numeric:tabular-nums}
+.countdown-label{display:block;font-size:.7rem;letter-spacing:.08em;color:#586879;margin-top:5px}
+.countdown-note{font-size:.9rem;color:#586879;margin:15px 0 0}
+@media(max-width:420px){.countdown-card{padding:17px 12px}.countdown-units{gap:5px}.countdown-unit{padding:10px 2px}.countdown-label{font-size:.62rem;letter-spacing:.03em}}
+
 </style>
 </head>
 <body>
 <main>
+
+  <section class="countdown-card" aria-labelledby="countdown-title">
+    
+    <h2 class="countdown-title" id="countdown-title">Lancement de l’année 1 dans :</h2>
+    
+    <div class="countdown-units" role="timer" aria-live="off" aria-label="Compte à rebours jusqu’au 22 décembre 2027">
+      <div class="countdown-unit"><span class="countdown-number" id="countdown-days">—</span><span class="countdown-label">JOURS</span></div>
+      <div class="countdown-unit"><span class="countdown-number" id="countdown-hours">—</span><span class="countdown-label">HEURES</span></div>
+      <div class="countdown-unit"><span class="countdown-number" id="countdown-minutes">—</span><span class="countdown-label">MINUTES</span></div>
+      <div class="countdown-unit"><span class="countdown-number" id="countdown-seconds">—</span><span class="countdown-label">SECONDES</span></div>
+    </div>
+    <p class="countdown-date" style="margin:18px 0 0">22 décembre 2027 — Début de l’année 1</p>
+    <p class="countdown-note" id="countdown-note" hidden></p>
+  </section>
+
   <h1>Calculateur du Calendrier Endodécal</h1>
   <p>Convertisseur de dates à partir de l’origine : <strong>Yule, 22 décembre 2027 — année 1</strong>.</p>
   <div class="card">
@@ -44,6 +72,39 @@ footer{font-size:.85rem;color:#667788;margin:22px 0}
   <footer>Outil local : aucune donnée n’est envoyée à un serveur.</footer>
 </main>
 <script>
+
+// Compte à rebours vers Yule, le 22 décembre 2027.
+// Le compte cible minuit au début de cette date, heure de Paris.
+(function(){
+  const target = new Date("2027-12-22T00:00:00+01:00").getTime();
+  const ids = {
+    days: document.getElementById("countdown-days"),
+    hours: document.getElementById("countdown-hours"),
+    minutes: document.getElementById("countdown-minutes"),
+    seconds: document.getElementById("countdown-seconds"),
+    note: document.getElementById("countdown-note")
+  };
+  const pad = n => String(n).padStart(2,"0");
+  function updateCountdown(){
+    let remaining = target - Date.now();
+    if(remaining <= 0){
+      ids.days.textContent = "0";
+      ids.hours.textContent = "00";
+      ids.minutes.textContent = "00";
+      ids.seconds.textContent = "00";
+      ids.note.textContent = "L’année 1 commence aujourd’hui.";
+      return;
+    }
+    const totalSeconds = Math.floor(remaining / 1000);
+    ids.days.textContent = String(Math.floor(totalSeconds / 86400));
+    ids.hours.textContent = pad(Math.floor((totalSeconds % 86400) / 3600));
+    ids.minutes.textContent = pad(Math.floor((totalSeconds % 3600) / 60));
+    ids.seconds.textContent = pad(totalSeconds % 60);
+  }
+  updateCountdown();
+  setInterval(updateCountdown,1000);
+})();
+
 const names=["Yule","Gème","Imbolc","Lore","Ostara","Vère","Beltaine","Sole","Litha","Same","Lugnasad","Cèle","Mabon","Adune","Samain","Tone"];
 // Longueurs propres à chaque yogon, dans l’ordre chronologique fourni par l’auteur.
 // Chaque yogon possède un endex rétrograde (avant) et un endex direct (après).
