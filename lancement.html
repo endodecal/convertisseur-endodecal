@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lancement de l’année 1 — Calendrier endodécal</title>
+<style>
+:root{--blue:#234c78;--line:#d7e0e8;--ink:#202a35}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f7f9fb;color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{width:100%;max-width:760px}
+.card{background:linear-gradient(145deg,#fff 0%,#edf3f8 100%);border:1px solid #cbd9e6;border-radius:16px;padding:clamp(22px,5vw,42px);text-align:center;box-shadow:0 4px 18px #18324a0b}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.2;color:var(--blue);font-weight:400;margin:0 0 26px}
+.units{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:600px;margin:0 auto}
+.unit{background:rgba(255,255,255,.85);border:1px solid var(--line);border-radius:10px;padding:clamp(10px,2.5vw,18px) 5px}
+.number{display:block;font-size:clamp(1.55rem,5vw,2.6rem);font-weight:700;line-height:1.15;color:var(--blue);font-variant-numeric:tabular-nums}
+.label{display:block;font-size:clamp(.62rem,1.7vw,.78rem);letter-spacing:.08em;color:#586879;margin-top:7px}
+.date{font-size:clamp(1rem,2.7vw,1.2rem);font-weight:600;color:#42566a;margin:24px 0 0}
+@media(max-width:420px){body{padding:12px}.card{padding:22px 12px}.units{gap:5px}.unit{padding:12px 2px}.label{letter-spacing:.02em}}
+</style>
+</head>
+<body>
+<main>
+<section class="card" aria-labelledby="title">
+<h1 id="title">Lancement de l’année 1</h1>
+<div class="units" role="timer" aria-label="Compte à rebours jusqu’au 22 décembre 2027">
+<div class="unit"><span class="number" id="days">—</span><span class="label">JOURS</span></div>
+<div class="unit"><span class="number" id="hours">—</span><span class="label">HEURES</span></div>
+<div class="unit"><span class="number" id="minutes">—</span><span class="label">MINUTES</span></div>
+<div class="unit"><span class="number" id="seconds">—</span><span class="label">SECONDES</span></div>
+</div>
+<p class="date">22 décembre 2027 — Début de l’année 1</p>
+</section>
+</main>
+<script>
+(function(){
+  // Minuit au début du 22 décembre 2027, heure de Paris.
+  const target = new Date("2027-12-22T00:00:00+01:00").getTime();
+  const el = {
+    days: document.getElementById("days"),
+    hours: document.getElementById("hours"),
+    minutes: document.getElementById("minutes"),
+    seconds: document.getElementById("seconds")
+  };
+  const pad = n => String(n).padStart(2,"0");
+  function update(){
+    const remaining = target - Date.now();
+    if(remaining <= 0){
+      el.days.textContent = "0";
+      el.hours.textContent = "00";
+      el.minutes.textContent = "00";
+      el.seconds.textContent = "00";
+      return;
+    }
+    const total = Math.floor(remaining/1000);
+    el.days.textContent = String(Math.floor(total/86400));
+    el.hours.textContent = pad(Math.floor((total%86400)/3600));
+    el.minutes.textContent = pad(Math.floor((total%3600)/60));
+    el.seconds.textContent = pad(total%60);
+  }
+  update();
+  setInterval(update,1000);
+})();
+</script>
+</body>
+</html>
